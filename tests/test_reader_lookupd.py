@@ -7,7 +7,9 @@ from ansq import create_reader, create_writer
 
 @pytest.fixture(autouse=True)
 async def nsqd(tmp_path, create_nsqd, nsqlookupd):
-    async with create_nsqd(lookupd_tcp_addresses=[nsqlookupd.tcp_address]) as nsqd:
+    async with create_nsqd(
+        port=4350, http_port=4351, lookupd_tcp_addresses=[nsqlookupd.tcp_address]
+    ) as nsqd:
         yield nsqd
 
 

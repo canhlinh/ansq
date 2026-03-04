@@ -84,7 +84,14 @@ async def test_pub_to_multiple_tcp_addresses(nsqd, nsqd2):
         nsqd_tcp_addresses=[nsqd.tcp_address, nsqd2.tcp_address],
     )
 
-    message = await reader.wait_for_message()
-    assert message.body == b"test_message"
+    # The message landed on a random nsqd node; drain until we find it
+    found = False
+    async for message in reader.messages():
+        await message.fin()
+        if message.body == b"test_message":
+            found = True
+            break
+
+    assert found, "Expected message not received from either nsqd node"
 
     await reader.close()

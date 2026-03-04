@@ -42,11 +42,13 @@ async def test_close_reader(nsqd):
 
 
 async def test_wait_for_message(nsqd):
+    # Use a unique topic to avoid message contamination from other tests
+    topic = "test_reader_wait_for_message"
     nsq = await open_connection(nsqd.host, nsqd.port)
-    await nsq.pub(topic="foo", message="test_message")
+    await nsq.pub(topic=topic, message="test_message")
     await nsq.close()
 
-    reader = await create_reader(topic="foo", channel="bar")
+    reader = await create_reader(topic=topic, channel="bar")
 
     message = await reader.wait_for_message()
     await message.fin()
@@ -56,12 +58,14 @@ async def test_wait_for_message(nsqd):
 
 
 async def test_messages_generator(nsqd):
+    # Use a unique topic to avoid message contamination from other tests
+    topic = "test_reader_messages_generator"
     nsq = await open_connection(nsqd.host, nsqd.port)
-    await nsq.pub(topic="foo", message="test_message1")
-    await nsq.pub(topic="foo", message="test_message2")
+    await nsq.pub(topic=topic, message="test_message1")
+    await nsq.pub(topic=topic, message="test_message2")
     await nsq.close()
 
-    reader = await create_reader(topic="foo", channel="bar")
+    reader = await create_reader(topic=topic, channel="bar")
 
     read_messages = []
     async for message in reader.messages():
@@ -76,14 +80,16 @@ async def test_messages_generator(nsqd):
 
 
 async def test_read_from_multiple_tcp_addresses(nsqd, nsqd2):
+    # Use a unique topic to avoid contamination
+    topic = "test_reader_multi_tcp"
     reader = await create_reader(
-        topic="foo",
+        topic=topic,
         channel="bar",
         nsqd_tcp_addresses=[nsqd.tcp_address, nsqd2.tcp_address],
     )
 
     nsq1 = await open_connection(nsqd.host, nsqd.port)
-    await nsq1.pub(topic="foo", message="test_message1")
+    await nsq1.pub(topic=topic, message="test_message1")
     await nsq1.close()
 
     message = await reader.wait_for_message()
@@ -91,7 +97,7 @@ async def test_read_from_multiple_tcp_addresses(nsqd, nsqd2):
     assert message.body == b"test_message1"
 
     nsq2 = await open_connection(nsqd2.host, nsqd2.port)
-    await nsq2.pub(topic="foo", message="test_message2")
+    await nsq2.pub(topic=topic, message="test_message2")
     await nsq2.close()
 
     message = await reader.wait_for_message()

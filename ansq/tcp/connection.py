@@ -381,6 +381,7 @@ class NSQConnection(NSQConnectionBase):
                 return
             except Exception as e:
                 error = e
+                break  # connection-level error (e.g. RST); exit the read loop
 
         self.logger.info(
             "Lost connection to NSQ %s due an error: %s", self.endpoint, error

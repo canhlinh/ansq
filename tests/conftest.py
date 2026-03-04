@@ -63,44 +63,77 @@ class BaseNSQServer(abc.ABC):
             self.http_address,
         ]
 
-    async def start(self):
-        """Start nsqd in a separate process."""
+    async def start(self, max_attempts: int = 5, retry_delay: float = 0.5):
+        """Start nsqd in a separate process, retrying if the port is not yet free."""
         if self._process is not None:
             return
 
-        self._process = await asyncio.create_subprocess_exec(
-            self.command, *self.command_args
+        last_exc: Exception | None = None
+        for attempt in range(max_attempts):
+            self._process = await asyncio.create_subprocess_exec(
+                self.command, *self.command_args
+            )
+            try:
+                await self._wait_ping()
+                return  # Started successfully
+            except Exception as exc:
+                last_exc = exc
+                await self.stop()
+                await asyncio.sleep(retry_delay * (attempt + 1))
+
+        raise RuntimeError(
+            f"{self.command} failed to start after {max_attempts} attempts: {last_exc}"
         )
-        await self._wait_ping()
 
     async def stop(self):
         """Stop nsqd."""
         if self._process is None:
             return
 
-        os.kill(self._process.pid, signal.SIGKILL)
-        await self._process.wait()
+        # Process may have already exited (e.g. killed inside a test)
+        if self._process.returncode is None:
+            try:
+                os.kill(self._process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass  # Already dead
+
+        try:
+            await self._process.wait()
+        except Exception:
+            pass
+
         self._process = None
 
     async def _wait_ping(self, timeout: int = 3) -> None:
         """Wait for successful ping to HTTP API, otherwise raise last exception."""
         http_writer = self.http_writer_class(host=self.host, port=self.http_port)
         start = time.time()
-        while True:
-            try:
-                res = await http_writer.ping()
-            except Exception:
-                res = None
+        try:
+            while True:
+                # Fail fast if the process has already exited (e.g. port conflict)
+                if self._process and self._process.returncode is not None:
+                    raise RuntimeError(
+                        f"{self.command} exited early with code "
+                        f"{self._process.returncode}"
+                    )
 
-            if res == "OK":
-                break
+                try:
+                    res = await http_writer.ping()
+                except Exception:
+                    res = None
 
-            if time.time() - start > timeout:
-                raise
+                if res == "OK":
+                    break
 
-            await asyncio.sleep(0.1)
+                if time.time() - start > timeout:
+                    raise RuntimeError(
+                        f"Timed out waiting for {self.command} to respond"
+                    )
 
-        await http_writer.close()
+                await asyncio.sleep(0.1)
+        finally:
+            # Always close the session to avoid leaked aiohttp connections
+            await http_writer.close()
 
 
 class NSQD(BaseNSQServer):
