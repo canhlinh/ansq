@@ -19,7 +19,7 @@ _T = TypeVar("_T", bound="NSQHTTPConnection")
 
 
 class NSQHTTPConnection:
-    """XXX"""
+    """Base HTTP client for communicating with NSQ HTTP APIs (nsqd/nsqlookupd)."""
 
     def __init__(
         self,
@@ -28,7 +28,10 @@ class NSQHTTPConnection:
         *,
         loop: AbstractEventLoop | None = None,
     ) -> None:
-        self._loop = loop or asyncio.get_event_loop()
+        try:
+            self._loop = loop or asyncio.get_running_loop()
+        except RuntimeError:
+            self._loop = loop or asyncio.get_event_loop()
         self._endpoint = (host, port)
         self._base_url = "http://{}:{}/".format(*self._endpoint)
 

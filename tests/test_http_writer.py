@@ -6,8 +6,8 @@ from ansq.http.writer import NSQDHTTPWriter
 
 
 @pytest.fixture
-async def writer(event_loop, nsqd):
-    http_writer = NSQDHTTPWriter(loop=event_loop)
+async def writer(nsqd):
+    http_writer = NSQDHTTPWriter()
     yield http_writer
     await http_writer.close()
 
