@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 import asyncio
 import functools
+import itertools
 import logging
 import socket
 import warnings
@@ -80,11 +81,11 @@ class ConnectionOptions:
         for param, value in kwargs.items():
             if param in option_names:
                 options[param] = value
-                break
+                continue
 
             if param in feature_names:
                 features[param] = value
-                break
+                continue
 
             raise TypeError(f"got an unexpected keyword argument: '{param}'")
 
@@ -93,7 +94,7 @@ class ConnectionOptions:
 
 
 class TCPConnection(abc.ABC):
-    instances_count = 0
+    _instance_counter = itertools.count()
 
     def __init__(
         self,
@@ -120,11 +121,13 @@ class TCPConnection(abc.ABC):
 
         self._options: ConnectionOptions = connection_options
 
-        self.instance_number = self.__class__.instances_count
-        self.__class__.instances_count += 1
+        self.instance_number = next(self.__class__._instance_counter)
 
         self._host, self._port = host, port
-        self._loop: AbstractEventLoop = self._options.loop or asyncio.get_event_loop()
+        try:
+            self._loop: AbstractEventLoop = self._options.loop or asyncio.get_running_loop()
+        except RuntimeError:
+            self._loop = asyncio.get_event_loop()
         self._debug = self._options.debug
         self.logger = self._options.logger or get_logger(
             self._debug, f"{self._host}:{self._port}.{self.instance_number}"

@@ -73,6 +73,14 @@ async def test_connection_options_as_kwargs(nsqd):
     await nsq.close()
 
 
+async def test_multiple_connection_options_as_kwargs(nsqd):
+    """Regression test: _evolve must apply ALL kwargs, not just the first one."""
+    nsq = await open_connection(debug=True, auto_reconnect=False)
+    assert nsq._options.debug is True
+    assert nsq._options.auto_reconnect is False
+    await nsq.close()
+
+
 async def test_feature_options_as_kwargs(nsqd):
     nsq = await open_connection(heartbeat_interval=30001)
     assert nsq._options.features.heartbeat_interval == 30001

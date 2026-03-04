@@ -6,60 +6,54 @@ from .base import NSQHTTPConnection
 
 
 class NsqLookupd(NSQHTTPConnection):
-    """
+    """HTTP client for nsqlookupd — the service-discovery daemon.
+
     :see: http://nsq.io/components/nsqlookupd.html
     """
 
     async def ping(self) -> HTTPResponse:
         """Monitoring endpoint.
-        :returns: should return `"OK"`, otherwise raises an exception.
+
+        :returns: ``"OK"`` if the server is healthy, otherwise raises an exception.
         """
         return await self.perform_request("GET", "ping", None, None)
 
     async def info(self) -> HTTPResponse:
-        """Returns version information."""
+        """Return version information about the nsqlookupd instance."""
         response = await self.perform_request("GET", "info", None, None)
         return response
 
     async def lookup(self, topic: str) -> HTTPResponse:
-        """XXX
+        """Return producer information for all nsqd nodes publishing a given topic.
 
-        :param topic:
-        :return:
+        :param topic: The topic name to look up.
+        :returns: A dict with a ``producers`` key listing nodes that have the topic.
         """
         response = await self.perform_request("GET", "lookup", {"topic": topic}, None)
         return response
 
     async def topics(self) -> HTTPResponse:
-        """XXX
-
-        :return:
-        """
+        """Return a list of all known topics registered with this nsqlookupd."""
         resp = await self.perform_request("GET", "topics", None, None)
         return resp
 
     async def channels(self, topic: str) -> HTTPResponse:
-        """XXX
+        """Return a list of all known channels for a given topic.
 
-        :param topic:
-        :return:
+        :param topic: The topic name to look up channels for.
         """
         resp = await self.perform_request("GET", "channels", {"topic": topic}, None)
         return resp
 
     async def nodes(self) -> HTTPResponse:
-        """XXX
-
-        :return:
-        """
+        """Return a list of all known nsqd nodes registered with this nsqlookupd."""
         resp = await self.perform_request("GET", "nodes", None, None)
         return resp
 
     async def create_topic(self, topic: str) -> HTTPResponse:
-        """XXX
+        """Create a topic on the nsqlookupd.
 
-        :param topic:
-        :return:
+        :param topic: The topic name to create.
         """
         resp = await self.perform_request(
             "POST", "/topic/create", {"topic": topic}, None
@@ -67,10 +61,9 @@ class NsqLookupd(NSQHTTPConnection):
         return resp
 
     async def delete_topic(self, topic: str) -> HTTPResponse:
-        """XXX
+        """Delete a topic and all its channels from the nsqlookupd.
 
-        :param topic:
-        :return:
+        :param topic: The topic name to delete.
         """
         resp = await self.perform_request(
             "POST", "/topic/delete", {"topic": topic}, None
@@ -78,11 +71,10 @@ class NsqLookupd(NSQHTTPConnection):
         return resp
 
     async def create_channel(self, topic: str, channel: str) -> HTTPResponse:
-        """XXX
+        """Create a channel for a given topic on the nsqlookupd.
 
-        :param topic:
-        :param channel:
-        :return:
+        :param topic: The topic name.
+        :param channel: The channel name to create.
         """
         resp = await self.perform_request(
             "POST", "/channel/create", {"topic": topic, "channel": channel}, None
@@ -90,11 +82,10 @@ class NsqLookupd(NSQHTTPConnection):
         return resp
 
     async def delete_channel(self, topic: str, channel: str) -> HTTPResponse:
-        """XXX
+        """Delete a channel from a given topic on the nsqlookupd.
 
-        :param topic:
-        :param channel:
-        :return:
+        :param topic: The topic name.
+        :param channel: The channel name to delete.
         """
         resp = await self.perform_request(
             "POST", "/channel/delete", {"topic": topic, "channel": channel}, None
@@ -102,13 +93,17 @@ class NsqLookupd(NSQHTTPConnection):
         return resp
 
     async def tombstone_topic_producer(self, topic: str, node: str) -> HTTPResponse:
-        """XXX
+        """Tombstone a specific producer for an existing topic.
 
-        :param topic:
-        :param node:
-        :return:
+        A tombstoned producer will be removed from lookup results for a brief
+        period, allowing a rolling restart of nsqd nodes without consumers
+        temporarily connecting to a node that is restarting.
+
+        :param topic: The topic name.
+        :param node: The producer node in ``<broadcast_address>:<http_port>`` format.
+        :see: https://nsq.io/components/nsqlookupd.html
         """
         resp = await self.perform_request(
-            "POST", "delete_channel", {"topic": topic, "node": node}, None
+            "POST", "/topic/tombstone", {"topic": topic, "node": node}, None
         )
         return resp

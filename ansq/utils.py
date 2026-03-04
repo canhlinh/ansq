@@ -168,8 +168,6 @@ def get_logger(debug: bool = False, unique_name: str | None = None) -> logging.L
     :type unique_name: :class:`str`
     """
     logger = logging.getLogger(f"ansq {unique_name}" if unique_name else "ansq")
-    log_format = "%(asctime)s - %(levelname)s - %(name)s: %(message)s"
-    logging.basicConfig(format=log_format)
     logger.setLevel(logging.DEBUG if debug else logging.INFO)
     return logger
 

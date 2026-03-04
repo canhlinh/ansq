@@ -528,6 +528,7 @@ class NSQConnection(NSQConnectionBase):
         """Finish a message (indicate successful processing)"""
         if isinstance(message_id, NSQMessage):
             await message_id.fin()
+            return
         await self.execute(NSQCommands.FIN, message_id)
 
     async def req(self, message_id: str | NSQMessage, timeout: int = 0) -> None:
@@ -538,12 +539,14 @@ class NSQConnection(NSQConnectionBase):
         """
         if isinstance(message_id, NSQMessage):
             await message_id.req(timeout)
+            return
         await self.execute(NSQCommands.REQ, message_id, timeout)
 
     async def touch(self, message_id: str | NSQMessage) -> None:
         """Reset the timeout for an in-flight message"""
         if isinstance(message_id, NSQMessage):
             await message_id.touch()
+            return
         await self.execute(NSQCommands.TOUCH, message_id)
 
     async def _cls(self) -> TCPResponse:

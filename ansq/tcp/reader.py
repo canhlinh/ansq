@@ -44,7 +44,10 @@ class Reader(Client):
 
         self._topic = topic
         self._channel = channel
-        self._loop = loop or asyncio.get_event_loop()
+        try:
+            self._loop = loop or asyncio.get_running_loop()
+        except RuntimeError:
+            self._loop = loop or asyncio.get_event_loop()
         self._lookupd: Lookupd | None = None
 
         # Common message queue for all connections
@@ -169,7 +172,10 @@ class Lookupd:
         self._reader = reader
         self._poll_interval = poll_interval / 1000
         self._poll_jitter = poll_jitter
-        self._loop = loop or asyncio.get_event_loop()
+        try:
+            self._loop = loop or asyncio.get_running_loop()
+        except RuntimeError:
+            self._loop = loop or asyncio.get_event_loop()
         self._query_lookupd_attempts = 0
         self._logger = get_logger(debug, "lookupd")
         self._debug = debug

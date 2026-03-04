@@ -4,6 +4,7 @@ import random
 from typing import TYPE_CHECKING, Any, Sequence
 
 from ansq.tcp.connection import NSQConnection
+from ansq.tcp.exceptions import NSQNoConnections
 from ansq.tcp.types import Client, ConnectionOptions
 
 if TYPE_CHECKING:
@@ -42,10 +43,18 @@ class Writer(Client):
         return await conn.mpub(topic, *messages)
 
     def _get_random_open_connection(self) -> NSQConnection:
-        """Return a random open connection."""
+        """Return a random open connection.
+
+        :raises NSQNoConnections: If there are no open connections.
+        """
         open_connections = tuple(
             conn for conn in self._connections.values() if conn.is_connected
         )
+        if not open_connections:
+            raise NSQNoConnections(
+                "No open connections available. Ensure the writer is connected "
+                "before publishing."
+            )
         return random.choice(open_connections)
 
 

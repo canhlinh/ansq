@@ -6,11 +6,11 @@ class ConnectionClosedError(Exception):
 
 
 class NSQException(Exception):
-    """XXX"""
+    """Base class for all NSQ exceptions."""
 
 
 class ProtocolError(NSQException):
-    """XXX"""
+    """Raised when an unexpected NSQ protocol frame is received."""
 
 
 class NSQRequeueMessage(NSQException):
@@ -132,5 +132,7 @@ ERROR_CODES = {
 # E_FIN_FAILED
 
 
-def get_exception(code: str, error_message: str | bytes) -> NSQException:
-    return ERROR_CODES.get(code, NSQErrorCode)(f"{code}: {error_message!r}")
+def get_exception(code: str | bytes, error_message: str | bytes) -> NSQException:
+    """Map an NSQ error code to a typed exception."""
+    code_str = code.decode() if isinstance(code, bytes) else code
+    return ERROR_CODES.get(code_str, NSQErrorCode)(f"{code_str}: {error_message!r}")
